@@ -1,0 +1,13 @@
+---
+
+- name: restart nscd
+  service: name=nscd state=restarted
+
+- name: restart nslcd
+  service: name=nslcd state=restarted
+
+- name: restart sshd
+  service: name=ssh state=restarted
+  
+# - name: restart autofs
+#   service: name=autofs state=restarted

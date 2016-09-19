@@ -1,0 +1,42 @@
+# {{ ansible_managed }}
+#
+# /etc/nslcd.conf
+# nslcd configuration file. See nslcd.conf(5)
+# for details.
+
+# The user and group nslcd should run as.
+uid {{ nslcd_user }}
+gid {{ nslcd_group }}
+
+# The location at which the LDAP server(s) should be reachable.
+uri {{ smash_ldap_uri }}
+
+# The search base that will be used for all queries.
+{% for dn in nslcd_bases %}
+base {{ dn }}
+{% endfor %}
+# The search scope
+scope {{ nslcd_scope }}
+# Should we deref aliases?
+deref {{ nslcd_deref }}
+
+# The LDAP protocol version to use.
+#ldap_version 3
+
+# The DN to bind with for normal lookups.
+#binddn cn=annonymous,dc=example,dc=net
+#bindpw secret
+{% if smash_bind_dn %}
+binddn {{ smash_bind_dn }}
+{% endif %}
+
+{% if smash_bind_pw %}
+bindpw {{ smash_bind_pw }}
+{% endif %}
+# The DN used for password modifications by root.
+#rootpwmoddn cn=admin,dc=example,dc=com
+{% if nslcd_root_pw_mod_dn %}rootpwmoddn {{ nslcd_root_pw_mod_dn }}{% endif %}
+
+# SSL options
+#ssl off
+#tls_reqcert never

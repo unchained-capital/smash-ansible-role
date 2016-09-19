@@ -1,0 +1,15 @@
+#
+# Manually generated from openssh.schema using these instructions:
+#
+#   https://www.lisenet.com/2015/convert-openldap-schema-to-ldif/
+#
+# CRC32 54c970f3
+dn: cn=openssh,cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: openssh
+olcAttributeTypes: {0}( 1.3.6.1.4.1.24552.500.1.1.1.13 NAME 'sshPublicKey' DES
+ C 'MANDATORY: OpenSSH Public key' EQUALITY octetStringMatch SYNTAX 1.3.6.1.4.
+ 1.1466.115.121.1.40 )
+olcObjectClasses: {0}( 1.3.6.1.4.1.24552.500.1.1.2.0 NAME 'ldapPublicKey' DESC
+  'MANDATORY: OpenSSH LPK objectclass' SUP top AUXILIARY MAY ( sshPublicKey $ 
+ uid ) )

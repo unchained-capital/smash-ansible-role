@@ -1,0 +1,55 @@
+---
+
+smash_packages:
+  # These two depend on each other and will additionally install:
+  # ldap-utils, nslcd, nscd, basically giving us everything we need
+  # for SSH + LDAP.
+  - libpam-ldapd
+  - libnss-ldapd
+  # - autofs
+
+smash_sudo_packages:
+  - sudo-ldap
+
+smash_ldap_host: localhost
+smash_bind_dn:   'cn=admin,dc=example,dc=com'
+smash_bind_pw:   ~
+
+nscd_conf_path: /etc/nscd.conf
+nscd_log_path: /var/log/nscd.log
+
+nslcd_bases:
+  - ou=people,dc=example,dc=com
+  - ou=groups,dc=example,dc=com
+nslcd_conf_path: /etc/nslcd.conf
+nslcd_user:  nslcd
+nslcd_group: nslcd
+nslcd_root_pw_mod_dn: ~
+nslcd_scope: sub           # one of: sub, one, base
+nslcd_deref: never         # one of: never, searching, finding, always
+
+nsswitch_path: /etc/nsswitch.conf
+
+sshd_ldap_base:    'ou=people,dc=example,dc=com'
+sshd_ldap_object_class: ldapPublicKey
+sshd_ldap_user_attr: uid
+sshd_ldap_key_attr: sshPublicKey
+sshd_lib_dir: /usr/lib/openssh
+sshd_conf_path: /etc/ssh/sshd_config
+
+# autofs_nfs_host:         localhost
+# autofs_nfs_share:        home
+# autofs_master_conf_path: /etc/auto.master
+# autofs_home_conf_path:   /etc/auto.home
+
+home_nfs_host:    localhost
+home_nfs_share:   /home
+home_nfs_dir:     /home
+home_nfs_version: nfs4
+home_nfs_opts:    "sec=sys,noatime,nodiratime"
+
+pam_mkhomedir_umask: '0002'
+pam_mkhomedir_skeleton: /etc/skel
+
+sudoers_ldap_conf_path: /etc/sudo-ldap.conf
+sudoers_ldap_base: 'ou=SUDOers,dc=example,dc=com'

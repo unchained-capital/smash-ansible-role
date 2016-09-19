@@ -1,0 +1,155 @@
+---
+
+- name: Ensure packages are installed
+  apt: name="{{ item }}" state=present
+  with_items: "{{ smash_packages }}"
+  tags: [smash, packages, nscd, nslcd, nfs, sshd, nsswitch]
+
+#
+# nscd
+#
+
+- name: Ensure nscd configuration is correct
+  template: src=templates/nscd.conf.j2 dest="{{ nscd_conf_path }}" owner=root group=root mode=0644
+  tags: [smash, nscd, config]
+  notify: restart nscd
+
+- name: Ensure nscd service is enabled
+  service: name=nscd state=started enabled=yes
+  tags: [smash, nscd]
+
+#
+# nslcd
+#
+  
+- name: Ensure nslcd configuration is correct
+  template: src=templates/nslcd.conf.j2 dest="{{ nslcd_conf_path }}" owner=root group="{{ nslcd_group }}" mode=0600
+  tags: [smash, nslcd, config]
+  notify: restart nslcd
+
+- name: Ensure nslcd service is enabled
+  service: name=nslcd state=started enabled=yes
+  tags: [smash, nslcd]
+
+#
+# NIS
+#
+  
+- name: Ensure nsswitch.conf configuration is correct
+  lineinfile: dest="{{ nsswitch_path }}" state=present regexp="{{ item.regexp }}" line="{{ item.line }}"
+  tags: [smash, nsswitch, config]
+  with_items:
+    - regexp: "^passwd: "
+      line:   "passwd: compat ldap"
+    - regexp: "^group: "
+      line:   "group: compat ldap"
+    - regexp: "^shadow: "
+      line:   "shadow: compat ldap"
+
+#
+# sshd
+#
+
+- name: Ensure find-ldap-publickey script exists
+  template: src=templates/find-ldap-publickey.j2 dest="{{ sshd_lib_dir }}/find-ldap-public-key" owner=root group=root mode=0700
+  tags: [smash, sshd]
+
+- name: Ensure sshd configuration file is correct
+  lineinfile: dest="{{ sshd_conf_path }}" state=present regexp="{{ item.regexp }}" line="{{ item.line }}"
+  tags: [smash, sshd]
+  notify: restart sshd
+  with_items:
+    - regexp: "^AuthorizedKeysCommand "
+      line:   "AuthorizedKeysCommand {{ sshd_lib_dir }}/find-ldap-public-key"
+    - regexp: "^AuthorizedKeysCommandUser "
+      line:   "AuthorizedKeysCommandUser root"
+
+#
+# PAM
+#
+
+- name: Ensure PAM mkhomedir module is configured
+  tags: [smash, sshd, pam]
+  lineinfile:
+    dest: /etc/pam.d/sshd
+    regexp: '#\ssmash-mkhomedir$'
+    line: "session required pam_mkhomedir.so umask={{ pam_mkhomedir_umask }} skel={{ pam_mkhomedir_skeleton }} # smash-mkhomedir"
+    insertbefore: '^session\s+required\s+pam_unix.so'
+  notify: restart sshd
+
+#
+# autofs
+#
+# Nice to have, but I'm getting an error from `pam_mkhomedir` (`Unable
+# to create and initialize directory '/home/foo'`) when using AutoFS
+# to mount /home/foo that I DON'T get when /home is mounted via NFS
+# directly.  This probably has something to do with the fact that
+# AutoFS is trying to mount the very same directory that pam_mkhomedir
+# is supposed to make!  Furthermore, this comment
+#
+#   https://www.reddit.com/r/linuxquestions/comments/2zggk1/openldap_autofs_mount_home_directory_permission/cpip5nc
+#
+# makes me think it's not "normal" to do AutoFS + NFS?
+#
+# Abandoning AutoFS means we hit this weird bug
+#
+#   https://bbs.archlinux.org/viewtopic.php?id=168317
+#
+# only on initial NFS mount time, instead of every time we attempt to
+# access a new subdirectory of /home with AutoFS.
+#
+# Altogether, until these issues are resolved, better to just mount
+# /home directly.  But we leave this code in here for posterity and as
+# a warning to the next programmer who comes by.
+#
+
+# - name: Ensure AutoFS master configuration is correct
+#   template: src=templates/auto.master.j2 dest="{{ autofs_master_conf_path }}" owner=root group=root mode=0644
+#   tags: [smash, autofs, nfs]
+#   notify: restart autofs
+
+# - name: Ensure AutoFS NFS home configuration is correct
+#   template: src=templates/auto.home.j2 dest="{{ autofs_home_conf_path }}" owner=root group=root mode=0644
+#   tags: [smash, autofs, nfs]
+#   notify: restart autofs
+
+# - name: Ensure autofs service is enabled
+#   service: name=autofs state=started enabled=yes
+#   tags: [smash, autofs, nfs]
+
+#
+# NFS
+#
+      
+- name: Ensure mount directory for NFS home exists
+  file: state=directory path="{{ home_nfs_dir }}" owner=root group=root mode=0755
+  tags: [smash, nfs]
+
+- name: Ensure NFS home share is mounted
+  tags: [smash, nfs]
+  mount: state=mounted name="{{ home_nfs_dir }}" src="{{ home_nfs_host }}:{{ home_nfs_share }}" fstype="{{ home_nfs_version }}" opts="{{ home_nfs_opts }}"
+
+#
+# Sudo
+#
+
+- name: Ensure sudo packages are installed
+  apt: name="{{ item }}" state=present
+  environment:
+    SUDO_FORCE_REMOVE: "yes"
+  with_items: "{{ smash_sudo_packages }}"
+  tags: [smash, sudo, packages]
+
+- name: Check if LDAP configuration for sudo is a symlink
+  stat: path="{{ sudoers_ldap_conf_path }}"
+  tags: [smash, sudo, config]
+  register: sudoers_ldap_conf_path_lookup
+
+- name: Delete sudo LDAP configuration symlink if necessary
+  when: "{{ sudoers_ldap_conf_path_lookup.stat.exists and sudoers_ldap_conf_path_lookup.stat.islnk }}"
+  file: state=absent path="{{ sudoers_ldap_conf_path }}"
+  tags: [smash, sudo, config]
+  
+- name: Ensure LDAP configuration for sudo is correct
+  template: src=templates/sudo-ldap.conf.j2 dest="{{ sudoers_ldap_conf_path }}" owner=root group=root mode=0600
+  tags: [smash, sudo, config]
