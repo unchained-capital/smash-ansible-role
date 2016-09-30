@@ -11,14 +11,48 @@ gid {{ nslcd_group }}
 # The location at which the LDAP server(s) should be reachable.
 uri {{ smash_ldap_uri }}
 
+{% if nslcd_bases_global | length %}
 # The search base that will be used for all queries.
-{% for dn in nslcd_bases %}
+{% for dn in nslcd_bases_global %}
 base {{ dn }}
 {% endfor %}
-# The search scope
-scope {{ nslcd_scope }}
+{% endif %}
+
+{% if nslcd_bases | length %}
+# The search bases used for specific query types.
+{% for map, dns in nslcd_bases.iteritems() %}
+{% for dn in dns %}
+base {{ map }} {{ dn }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+{% if nslcd_scope_global %}
+# The global scope for all queries.
+scope {{ nslcd_scope_global }}
+{% endif %}
+
+{% if nslcd_scopes %}
+# Scopes for specific query types.
+{% for map, scope in nslcd_scopes.iteritems() %}
+scope {{ map }} {{ scope }}
+{% endfor %}
+{% endif %}
+
 # Should we deref aliases?
 deref {{ nslcd_deref }}
+
+{% if nslcd_filter_global %}
+# A global filter for all queries.
+filter {{ nslcd_filter_global }}
+{% endif %}
+
+{% if nslcd_filters %}
+# The filters used for specific query types.
+{% for map, filter in nslcd_filters %}
+filter {{ map }} {{ filter }}
+{% endfor %}
+{% endif %}
 
 # The LDAP protocol version to use.
 #ldap_version 3

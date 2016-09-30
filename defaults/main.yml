@@ -18,14 +18,35 @@ smash_bind_pw:   ~
 nscd_conf_path: /etc/nscd.conf
 nscd_log_path: /var/log/nscd.log
 
-nslcd_bases:
+nslcd_bases_global:
   - ou=people,dc=example,dc=com
   - ou=groups,dc=example,dc=com
+
+nslcd_bases: {}
+# nslcd_bases:
+#   group:  [ou=groups,dc=example,dc=com]
+#   passwd: [ou=people,dc=example,dc=com]
+#   shadow: [ou=people,dc=example,dc=com]
+
+nslcd_scope_global: sub           # one of: sub, one, base
+nslcd_scopes: {}
+# nslcd_scopes:
+#   group:  sub
+#   passwd: sub
+#   shadow: sub
+
+nslcd_filter_global: ~
+nslcd_filters: {}
+# nslcd_filters:
+#   group:  "(objectClass=posixGroup)"
+#   passwd: "(objectClass=posixAccount)"
+#   shadow: "(& (objectClass=posixAccount) (userPassword=*))"
+  
 nslcd_conf_path: /etc/nslcd.conf
 nslcd_user:  nslcd
 nslcd_group: nslcd
 nslcd_root_pw_mod_dn: ~
-nslcd_scope: sub           # one of: sub, one, base
+
 nslcd_deref: never         # one of: never, searching, finding, always
 
 nsswitch_path: /etc/nsswitch.conf
