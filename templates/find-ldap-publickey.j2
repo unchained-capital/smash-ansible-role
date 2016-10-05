@@ -14,4 +14,8 @@ if [ -z "${USER}" ]; then
     exit 1
 fi
 
-exec /usr/bin/ldapsearch -LLL -H "${SERVER_URI}" -D "${BIND_DN}" -w "${BIND_PW}"  -b "${BASE}" "(& (objectClass={{ sshd_ldap_object_class }}) ({{ sshd_ldap_user_attr }}=${USER}))" '{{ sshd_ldap_key_attr }}' | tail -n +2 | sed -e 's/{{ sshd_ldap_key_attr }}:\s//g' -e 's/^\s*//g' | awk '{printf $0}'
+exec /usr/bin/ldapsearch -LLL -H "${SERVER_URI}" -D "${BIND_DN}" -w "${BIND_PW}"  -b "${BASE}" "(& (objectClass=ldapPublicKey) (uid=${USER}))" 'sshPublicKey' \
+    | tail -n+2 \
+    | grep -E '.' \
+    | sed -e 's/sshPublicKey:\s//g' \
+    | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n //g'
