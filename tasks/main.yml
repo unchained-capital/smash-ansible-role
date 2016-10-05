@@ -65,7 +65,7 @@
       line:   "AuthorizedKeysCommandUser root"
 
 #
-# PAM
+# mkhomedir
 #
 
 - name: Ensure PAM mkhomedir module is loaded and configured
@@ -77,13 +77,50 @@
     insertbefore: '^session\s+required\s+pam_unix.so'
   notify: restart sshd
 
-- name: Ensure PAM access controls module is loaded
+
+#
+# Sudo
+#
+
+- name: Ensure sudo packages are installed
+  apt: name="{{ item }}" state=present
+  environment:
+    SUDO_FORCE_REMOVE: "yes"
+  with_items: "{{ smash_sudo_packages }}"
+  tags: [smash, sudo, packages]
+
+- name: Check if LDAP configuration for sudo is a symlink
+  stat: path="{{ sudoers_ldap_conf_path }}"
+  tags: [smash, sudo, config]
+  register: sudoers_ldap_conf_path_lookup
+
+- name: Delete sudo LDAP configuration symlink if necessary
+  when: "{{ sudoers_ldap_conf_path_lookup.stat.exists and sudoers_ldap_conf_path_lookup.stat.islnk }}"
+  file: state=absent path="{{ sudoers_ldap_conf_path }}"
+  tags: [smash, sudo, config]
+  
+- name: Ensure LDAP configuration for sudo is correct
+  template: src=templates/sudo-ldap.conf.j2 dest="{{ sudoers_ldap_conf_path }}" owner=root group=root mode=0600
+  tags: [smash, sudo, config]
+
+#
+# Access Controls
+#
+
+- name: Ensure access controls are correct
   when: "{{ smash_acls | length }}"
-  tags: [smash, pam, acls]
+  lineinfile: dest="{{ smash_acl_path }}" state=present line="{{ item }}"
+  with_items: "{{ smash_acls }}"
+  tags: [smash, acls]
+  
+- name: Ensure sshd uses access controls
+  when: "{{ smash_acls | length }}"
+  tags: [smash, pam, acls, sshd]
   lineinfile:
-    dest: "{{ pam_conf_dir }}/common-account"
+    dest: "{{ pam_conf_dir }}/sshd"
     regexp: '#\ssmash-acls$'
     line: "account required pam_access.so # smash-acls"
+    insertafter: '^@include\s+common-account'
 
 #
 # autofs
@@ -136,38 +173,3 @@
 - name: Ensure NFS home share is mounted
   tags: [smash, nfs]
   mount: state=mounted name="{{ home_nfs_dir }}" src="{{ home_nfs_host }}:{{ home_nfs_share }}" fstype="{{ home_nfs_version }}" opts="{{ home_nfs_opts }}"
-
-#
-# Sudo
-#
-
-- name: Ensure sudo packages are installed
-  apt: name="{{ item }}" state=present
-  environment:
-    SUDO_FORCE_REMOVE: "yes"
-  with_items: "{{ smash_sudo_packages }}"
-  tags: [smash, sudo, packages]
-
-- name: Check if LDAP configuration for sudo is a symlink
-  stat: path="{{ sudoers_ldap_conf_path }}"
-  tags: [smash, sudo, config]
-  register: sudoers_ldap_conf_path_lookup
-
-- name: Delete sudo LDAP configuration symlink if necessary
-  when: "{{ sudoers_ldap_conf_path_lookup.stat.exists and sudoers_ldap_conf_path_lookup.stat.islnk }}"
-  file: state=absent path="{{ sudoers_ldap_conf_path }}"
-  tags: [smash, sudo, config]
-  
-- name: Ensure LDAP configuration for sudo is correct
-  template: src=templates/sudo-ldap.conf.j2 dest="{{ sudoers_ldap_conf_path }}" owner=root group=root mode=0600
-  tags: [smash, sudo, config]
-
-#
-# access.conf
-#
-
-- name: Ensure login access controls are correct
-  when: "{{ smash_acls | length }}"
-  lineinfile: dest="{{ smash_acl_path }}" state=present line="{{ item }}"
-  with_items: "{{ smash_acls }}"
-  tags: [smash, acls]
