@@ -15,6 +15,9 @@ smash_ldap_host: localhost
 smash_bind_dn:   'cn=admin,dc=example,dc=com'
 smash_bind_pw:   ~
 
+smash_acl_path: /etc/security/access.conf
+smash_acls: []
+
 nscd_conf_path: /etc/nscd.conf
 nscd_log_path: /var/log/nscd.log
 
@@ -71,6 +74,7 @@ home_nfs_opts:    "sec=sys,noatime,nodiratime"
 
 pam_mkhomedir_umask: '0002'
 pam_mkhomedir_skeleton: /etc/skel
+pam_conf_dir: /etc/pam.d
 
 sudoers_ldap_conf_path: /etc/sudo-ldap.conf
 sudoers_ldap_base: 'ou=SUDOers,dc=example,dc=com'

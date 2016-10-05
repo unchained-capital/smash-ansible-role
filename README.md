@@ -15,6 +15,7 @@ snippets of code to create a "SMArter sSH" experience:
     [`pam_mkhomedir`](https://linux.die.net/man/8/pam_mkhomedir)).
 * Home directories are served from an
   [NFS](https://en.wikipedia.org/wiki/Network_File_System) share
+* [PAM login ACLs](https://linux.die.net/man/5/access.conf) can be optionally configured.
 
 # Requirements
 
@@ -43,9 +44,14 @@ technologies...but otherwise they can be opaque.
   * `smash_ldap_host`: LDAP server host. (Default: `localhost`)
   * `smash_bind_dn`: The `dn` to bind as when looking up users. (Default: `cn=admin,dc=example,dc=com`)
   * `smash_bind_pw`: Password for above DN.
+  * `smash_acls`: [ACL declarations](https://linux.die.net/man/5/access.conf)
 * `nslcd` variables:
-  * `nslcd_bases`: List of `dn`s to search for POSIX assets. (Default: [`ou=people,dc=example,dc=com`, `ou=groups,dc=example,dc=com`])
-  * `nslcd_scope`: The LDAP query scope to use when searching for POSIX assets, one of: `sub`, `one`, `base`.  (Default: `sub`)
+  * `nslcd_bases_global`: List of `dn`s to search for POSIX assets. (Default: [`ou=people,dc=example,dc=com`, `ou=groups,dc=example,dc=com`])
+  * `nslcd_scope_global`: The LDAP query scope to use when searching for POSIX assets, one of: `sub`, `one`, `base`.  (Default: `sub`)
+  * `nslcd_filter_global`: The LDAP query filter to use when searching for POSIX assets. (Default: `~`)
+  * `nslcd_bases`: Mapping of query type (`group`, `passwd`, `shadow`, &c.) to `dn`s to search. (Default: {})
+  * `nslcd_scopes`: Mapping of query type (`group`, `passwd`, `shadow`, &c.) to search scope. (Default: {})
+  * `nslcd_filters`: Mapping of query type (`group`, `passwd`, `shadow`, &c.) to search filter. (Default: {})
   * `nslcd_root_pw_mod_dn` The `dn` to bind to when performing "superuser" tasks such as changing a user's password.
 * `sshd` variables:
   * `sshd_ldap_base`: The `dn` to search for POSIX users. (Default: `ou=people,dc=example,dc=com`)
@@ -75,7 +81,10 @@ something like:
   roles:
     - role: smash
 	  smash_ldap_uri: "ldap://MY_LDAP_HOST/"
-      nslcd_bases:
+	  smash_acls:
+	    - "+ : root (wheel) : ALL"
+		- "- : ALL : ALL"
+      nslcd_global_bases:
         - "ou=people,dc=example,dc=com"
         - "ou=groups,dc=example,dc=com"
       sshd_ldap_base: "ou=people,dc=example,dc=com"

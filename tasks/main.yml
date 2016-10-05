@@ -68,14 +68,22 @@
 # PAM
 #
 
-- name: Ensure PAM mkhomedir module is configured
+- name: Ensure PAM mkhomedir module is loaded and configured
   tags: [smash, sshd, pam]
   lineinfile:
-    dest: /etc/pam.d/sshd
+    dest: "{{ pam_conf_dir }}/sshd"
     regexp: '#\ssmash-mkhomedir$'
     line: "session required pam_mkhomedir.so umask={{ pam_mkhomedir_umask }} skel={{ pam_mkhomedir_skeleton }} # smash-mkhomedir"
     insertbefore: '^session\s+required\s+pam_unix.so'
   notify: restart sshd
+
+- name: Ensure PAM access controls module is loaded
+  when: "{{ smash_acls | length }}"
+  tags: [smash, pam, acls]
+  lineinfile:
+    dest: "{{ pam_conf_dir }}/common-account"
+    regexp: '#\ssmash-acls$'
+    line: "account required pam_access.so # smash-acls"
 
 #
 # autofs
@@ -153,3 +161,13 @@
 - name: Ensure LDAP configuration for sudo is correct
   template: src=templates/sudo-ldap.conf.j2 dest="{{ sudoers_ldap_conf_path }}" owner=root group=root mode=0600
   tags: [smash, sudo, config]
+
+#
+# access.conf
+#
+
+- name: Ensure login access controls are correct
+  when: "{{ smash_acls | length }}"
+  lineinfile: dest="{{ smash_acl_path }}" state=present line="{{ item }}"
+  with_items: "{{ smash_acls }}"
+  tags: [smash, acls]
