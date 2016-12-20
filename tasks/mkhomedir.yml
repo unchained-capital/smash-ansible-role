@@ -1,0 +1,10 @@
+---
+
+- name: Ensure PAM mkhomedir module is loaded and configured to run on SSH logins
+  tags: [smash, sshd, pam]
+  lineinfile:
+    dest: "{{ pam_conf_dir }}/sshd"
+    regexp: '#\ssmash-mkhomedir$'
+    line: "session required pam_mkhomedir.so umask={{ pam_mkhomedir_umask }} skel={{ pam_mkhomedir_skeleton }} # smash-mkhomedir"
+    insertbefore: '^session\s+required\s+pam_unix.so'
+  notify: restart sshd

@@ -1,0 +1,14 @@
+---
+  
+- name: Ensure access controls are correct
+  lineinfile: dest="{{ smash_acl_path }}" state=present line="{{ item }}"
+  with_items: "{{ smash_acls }}"
+  tags: [config]
+  
+- name: Ensure sshd uses access controls
+  tags: [pam, sshd, config]
+  lineinfile:
+    dest: "{{ pam_conf_dir }}/sshd"
+    regexp: '#\ssmash-acls$'
+    line: "account required pam_access.so # smash-acls"
+    insertafter: '^@include\s+common-account'

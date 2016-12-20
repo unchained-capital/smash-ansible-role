@@ -1,0 +1,65 @@
+---
+
+- name: Ensure packages are installed
+  apt: name="{{ item }}" state=present
+  with_items: "{{ smash_packages }}"
+  tags: [packages, nscd, nslcd, sshd, nsswitch]
+
+#
+# nscd
+#
+
+- name: Ensure nscd configuration is correct
+  template: src=templates/nscd.conf.j2 dest="{{ nscd_conf_path }}" owner=root group=root mode=0644
+  tags: [nscd, config]
+  notify: restart nscd
+
+- name: Ensure nscd service is enabled
+  service: name=nscd state=started enabled=yes
+  tags: [nscd]
+
+#
+# nslcd
+#
+  
+- name: Ensure nslcd configuration is correct
+  template: src=templates/nslcd.conf.j2 dest="{{ nslcd_conf_path }}" owner=root group="{{ nslcd_group }}" mode=0600
+  tags: [nslcd, config]
+  notify: restart nslcd
+
+- name: Ensure nslcd service is enabled
+  service: name=nslcd state=started enabled=yes
+  tags: [nslcd]
+
+#
+# NIS
+#
+  
+- name: Ensure nsswitch.conf configuration is correct
+  lineinfile: dest="{{ nsswitch_path }}" state=present regexp="{{ item.regexp }}" line="{{ item.line }}"
+  tags: [nsswitch, config]
+  with_items:
+    - regexp: "^passwd: "
+      line:   "passwd: compat ldap"
+    - regexp: "^group: "
+      line:   "group: compat ldap"
+    - regexp: "^shadow: "
+      line:   "shadow: compat ldap"
+
+#
+# sshd
+#
+
+- name: Ensure find-ldap-publickey script exists
+  template: src=templates/find-ldap-publickey.j2 dest="{{ sshd_lib_dir }}/find-ldap-public-key" owner=root group=root mode=0700
+  tags: [sshd]
+
+- name: Ensure sshd configuration file is correct
+  lineinfile: dest="{{ sshd_conf_path }}" state=present regexp="{{ item.regexp }}" line="{{ item.line }}"
+  tags: [sshd]
+  notify: restart sshd
+  with_items:
+    - regexp: "^AuthorizedKeysCommand "
+      line:   "AuthorizedKeysCommand {{ sshd_lib_dir }}/find-ldap-public-key"
+    - regexp: "^AuthorizedKeysCommandUser "
+      line:   "AuthorizedKeysCommandUser root"

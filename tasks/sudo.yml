@@ -1,0 +1,22 @@
+---
+
+- name: Ensure sudo packages are installed
+  apt: name="{{ item }}" state=present
+  environment:
+    SUDO_FORCE_REMOVE: "yes"
+  with_items: "{{ smash_sudo_packages }}"
+  tags: [packages]
+
+- name: Check if LDAP configuration for sudo is a symlink
+  stat: path="{{ sudoers_ldap_conf_path }}"
+  tags: [config]
+  register: sudoers_ldap_conf_path_lookup
+
+- name: Delete sudo LDAP configuration symlink if necessary
+  when: "{{ sudoers_ldap_conf_path_lookup.stat.exists and sudoers_ldap_conf_path_lookup.stat.islnk }}"
+  file: state=absent path="{{ sudoers_ldap_conf_path }}"
+  tags: [config]
+  
+- name: Ensure LDAP configuration for sudo is correct
+  template: src=templates/sudo-ldap.conf.j2 dest="{{ sudoers_ldap_conf_path }}" owner=root group=root mode=0600
+  tags: [config]

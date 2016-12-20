@@ -1,0 +1,41 @@
+---
+
+#
+# Nice to have, but I'm getting an error from `pam_mkhomedir` (`Unable
+# to create and initialize directory '/home/foo'`) when using AutoFS
+# to mount /home/foo that I DON'T get when /home is mounted via NFS
+# directly.  This probably has something to do with the fact that
+# AutoFS is trying to mount the very same directory that pam_mkhomedir
+# is supposed to make!  Furthermore, this comment
+#
+#   https://www.reddit.com/r/linuxquestions/comments/2zggk1/openldap_autofs_mount_home_directory_permission/cpip5nc
+#
+# makes me think it's not "normal" to do AutoFS + NFS?
+#
+# Abandoning AutoFS means we hit this weird bug
+#
+#   https://bbs.archlinux.org/viewtopic.php?id=168317
+#
+# only on initial NFS mount time, instead of every time we attempt to
+# access a new subdirectory of /home with AutoFS.
+#
+# It might make sense to use AutoFS if we got rid of pam_mkhomedir
+# (perhaps that part is handled by whatever creates users in the LDAP
+# first place). In the future it may make sense to have a variable
+# deciding whether to use AutoFS or pam_mkhomedir.
+#
+# For now, this code exists but isn't used...
+# 
+- name: Ensure AutoFS master configuration is correct
+  template: src=templates/auto.master.j2 dest="{{ autofs_master_conf_path }}" owner=root group=root mode=0644
+  tags: [smash, autofs, nfs]
+  notify: restart autofs
+
+- name: Ensure AutoFS NFS home configuration is correct
+  template: src=templates/auto.home.j2 dest="{{ autofs_home_conf_path }}" owner=root group=root mode=0644
+  tags: [smash, autofs, nfs]
+  notify: restart autofs
+
+- name: Ensure autofs service is enabled
+  service: name=autofs state=started enabled=yes
+  tags: [smash, autofs, nfs]

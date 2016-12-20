@@ -1,5 +1,10 @@
 ---
 
+smash_logins:    true
+smash_sudo:      true
+smash_mkhomedir: true
+smash_nfs:       true
+
 smash_packages:
   # These two depend on each other and will additionally install:
   # ldap-utils, nslcd, nscd, basically giving us everything we need
@@ -66,11 +71,14 @@ sshd_conf_path: /etc/ssh/sshd_config
 # autofs_master_conf_path: /etc/auto.master
 # autofs_home_conf_path:   /etc/auto.home
 
-home_nfs_host:    localhost
-home_nfs_share:   /home
-home_nfs_dir:     /home
-home_nfs_version: nfs4
-home_nfs_opts:    "sec=sys,noatime,nodiratime"
+# No trailing slashes on any of these!
+smash_default_home: /home       # path to default /home directory
+smash_local_home:   /home.local # new location for default /home
+smash_nfs_home:     "{{ smash_default_home }}"       # new location of nfs-mounted /home (same as default)
+nfs_home_version:   nfs4
+nfs_home_host:      localhost   
+nfs_home_share:     /home.export
+nfs_home_opts:      "sec=sys,noatime,nodiratime"
 
 pam_mkhomedir_umask: '0002'
 pam_mkhomedir_skeleton: /etc/skel

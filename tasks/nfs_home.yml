@@ -1,0 +1,38 @@
+---
+
+#
+# FIXME -- After the tasks tagged 'local_home' run, Ansible is no
+# longer able to SSH into the node until its various cached connection
+# information is cleared (`make clean`).  Is there a way to
+# programatically do this?
+#
+# In practice it's not a huge deal, as the failure is predictable, and
+# the fix is easy.  The system is also left in a mostly-consistent
+# state -- local users (e.g. - `ubuntu`) will still be able to log in
+# directly via SSH.
+#
+
+- name: Ensure local home directory exists
+  file: state=directory path="{{ smash_local_home }}" owner=root group=root mode=0755
+  register: local_home_directory
+  tags: [local_home]
+
+- name: Ensure contents of default home directory are moved to local home directory
+  when: local_home_directory.changed
+  shell: cp -p -R "{{ smash_default_home }}"/* "{{ smash_local_home }}"
+  tags: [local_home]
+
+- name: Ensure home directory for all local users is set to local home
+  when: local_home_directory.changed
+  command: sed -i -r -e 's!:{{ smash_default_home }}/!:{{ smash_local_home }}/!g' /etc/passwd
+  tags: [local_home]
+  args:
+    chdir: /
+
+- name: Ensure default home directory has been deleted
+  when: local_home_directory.changed
+  file: state=absent path="{{ smash_default_home }}"
+  tags: [local_home, delete_default_home]
+
+- name: Ensure NFS home share is mounted to local home
+  mount: state=mounted name="{{ smash_nfs_home }}" src="{{ nfs_home_host }}:{{ nfs_home_share }}" fstype="{{ nfs_home_version }}" opts="{{ nfs_home_opts }}"
