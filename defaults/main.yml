@@ -3,7 +3,7 @@
 smash_logins:    true
 smash_sudo:      true
 smash_mkhomedir: true
-smash_nfs:       true
+smash_nfs:       false
 
 smash_packages:
   # These two depend on each other and will additionally install:
