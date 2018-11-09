@@ -4,6 +4,11 @@ URI {{ smash_ldap_uri }}
 
 SUDOERS_BASE {{ sudoers_ldap_base }}
 
+{% if smash_tls_ca_certificate is defined%}
+SSL on
+TLS_CACERTIFILE {{smash_tls_ca_certificate}}
+{% endif %}
+
 {% if smash_bind_dn is defined %}BINDDN {{ smash_bind_dn }}{% endif %}
 
 {% if smash_bind_pw is defined %}BINDPW {{ smash_bind_pw }}{% endif %}
