@@ -74,6 +74,6 @@ bindpw {{ smash_bind_pw }}
 # SSL options
 {% if smash_tls_ca_certificate is defined%}
 ssl on
-tls_casshcertfile {{smash_tls_ca_certificate}}
+tls_cacertfile {{smash_tls_ca_certificate}}
 tls_reqcert demand
 {% endif %}
