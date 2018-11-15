@@ -72,5 +72,8 @@ bindpw {{ smash_bind_pw }}
 {% if nslcd_root_pw_mod_dn %}rootpwmoddn {{ nslcd_root_pw_mod_dn }}{% endif %}
 
 # SSL options
-#ssl off
-#tls_reqcert never
+{% if smash_tls_ca_certificate is defined%}
+ssl on
+tls_cacertfile {{smash_tls_ca_certificate}}
+tls_reqcert demand
+{% endif %}
